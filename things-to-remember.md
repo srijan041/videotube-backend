@@ -35,3 +35,11 @@ Step 1:
 ID: gunzerker41
 
 pass: usual with cluster name (no special characters)
+
+# dotenv
+
+Setup dotenv as import not require (modular js style).
+
+But in order to do that, we need to change our start script. 
+
+Add the following as option in nodemon command: -r dotenv/config --experimental-json-modules
