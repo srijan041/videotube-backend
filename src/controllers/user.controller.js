@@ -406,7 +406,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                     $size: "$subscibers"
                 },
                 channelsSubscribedToCount: {
-                    $ize: "$subscribedTo"
+                    $size: "$subscribedTo"
                 },
                 isSubscribed: {
                     $cond: {
@@ -432,7 +432,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     ])
 
     if (!channel?.length) {
-        throw new ApiError(404, "channel does not exists")
+        throw new ApiError(404, `channel does not exists`)
     }
 
     return res
@@ -446,7 +446,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         )
 })
 
-const getWatchHistory = asyncHandler(async (rew, res) => {
+const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
             $match: {
