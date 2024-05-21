@@ -8,7 +8,6 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-    //TODO: get all videos based on query, sort, pagination
 
     if (!isValidObjectId(userId)) {
         throw new ApiError(400, "Invalid user id");
@@ -181,9 +180,17 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Video not found");
     }
 
-    //TODO: increment views if video fetched successfully
+    await Video.findByIdAndUpdate(videoId, {
+        $inc: {
+            views: 1
+        }
+    });
 
-    //TODO: add this video to user watch history
+    await User.findByIdAndUpdate(req.user?._id, {
+        $addToSet: {
+            watchHistory: videoId
+        }
+    });
 
     return res
         .status(200)
