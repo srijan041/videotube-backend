@@ -34,7 +34,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
         pipeline.push({
             $match: {
-                owner: mongoose.Types.ObjectId(userId),
+                owner: new mongoose.Types.ObjectId(userId),
             },
         });
     }
@@ -117,12 +117,17 @@ const publishAVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "videoFileLocalPath is required");
     }
 
+    // console.log("videoFileLocalPath", videoFileLocalPath);
+
     if (!thumbnailLocalPath) {
         throw new ApiError(400, "thumbnailLocalPath is required");
     }
 
     const videoFile = await uploadOnCloudinary(videoFileLocalPath);
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+
+    // console.log("videoFile url: ", videoFile.url);
+    // console.log("thumbnail url: ", thumbnail.url);
 
     if (!videoFile) {
         //TODO: Delete uploaded files if upload fails
@@ -141,13 +146,13 @@ const publishAVideo = asyncHandler(async (req, res) => {
         duration: videoFile.duration,
         videoFile: {
             url: videoFile.url,
-            public_id: videoFile.public_id,
+            public_id: videoFile.public_id, //TODO: May not need public_id. Remove from model if not
         },
         thumbnail: {
             url: thumbnail.url,
-            public_id: thumbnail.public_id,
+            public_id: thumbnail.public_id, //TODO: May not need public_id. Remove from model if not
         },
-        userId: req.user?._id,
+        owner: req.user?._id,
         isPublished: false,
     });
 
@@ -194,7 +199,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(new ApiResponse(200, video[0], "Video details fetched successfully"));
+        .json(new ApiResponse(200, video, "Video details fetched successfully"));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
@@ -301,11 +306,15 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     const video = await Video.findById(videoId);
 
+    // console.log(video);
+
     if (!video) {
         throw new ApiError(404, "Video not found");
     }
 
-    if (!video.owner.toString() === req.user?._id.toString()) {
+    // console.log(video.owner.toString(), req.user?._id.toString());
+
+    if (video.owner.toString() !== req.user?._id.toString()) {
         throw new ApiError(401, "Unauthorized Access");
     }
 
