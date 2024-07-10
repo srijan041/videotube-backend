@@ -11,8 +11,6 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
     // console.table({name, description})
 
-    //TODO: create playlist
-
     if ([name, description].some((field) => field?.trim() === ""))
         throw new ApiError(400, "All fields are required")
 
@@ -34,7 +32,6 @@ const createPlaylist = asyncHandler(async (req, res) => {
 const getUserPlaylists = asyncHandler(async (req, res) => {
     const { userId } = req.params
 
-    //TODO: get user playlists
 
     if (!isValidObjectId(userId))
         throw new ApiError(400, "Invalid user id")
@@ -80,7 +77,6 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
 const getPlaylistById = asyncHandler(async (req, res) => {
     const { playlistId } = req.params
-    //TODO: get playlist by id
 
     if (!isValidObjectId(playlistId))
         throw new ApiError(400, "Invalid playlist id")
@@ -98,7 +94,6 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
     const { playlistId, videoId } = req.params
 
-    // TODO: add video to playlist
 
     if (!isValidObjectId(playlistId) || !isValidObjectId(videoId))
         throw new ApiError(400, "Invalid playlist or video id")
