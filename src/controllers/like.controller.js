@@ -109,7 +109,6 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
 const getLikedVideos = asyncHandler(async (req, res) => {
 
-    //TODO: Check Aggregation pipeline
     const likedVideosAggegate = await Like.aggregate([
         {
             $match: {

@@ -34,29 +34,86 @@ const createTweet = asyncHandler(async (req, res) => {
 })
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    const { username } = req.params
+    const { userId } = req.params
 
-    if (!username)
+    if (!userId)
         throw new ApiError(400, "username required")
 
-    const user = await User.findOne({
-        username
-    })
+    const user = await User.findOne({ userId })
 
     if (!user)
         throw new ApiError(404, "User does not exist")
 
 
-    // TODO: Add pipeline to include owner details, likes
     const tweets = await Tweet.aggregate([
         {
             $match: {
-                owner: new mongoose.Types.ObjectId(user?._id),
-
+                owner: new mongoose.Types.ObjectId(userId),
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            "avatar.url": 1,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "tweet",
+                as: "likeDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            likedBy: 1,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $addFields: {
+                likesCount: {
+                    $size: "$likeDetails",
+                },
+                ownerDetails: {
+                    $first: "$ownerDetails",
+                },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$likeDetails.likedBy"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            },
+        },
+        {
+            $sort: {
+                createdAt: -1
             }
-        }
-    ]
-    )
+        },
+        {
+            $project: {
+                content: 1,
+                ownerDetails: 1,
+                likesCount: 1,
+                createdAt: 1,
+                isLiked: 1
+            },
+        },
+    ])
 
     if (!tweets)
         throw new ApiError(500, "Tweets not found")

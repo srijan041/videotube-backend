@@ -1,10 +1,13 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.model.js";
+import { Comment } from "../models/comment.model.js";
+import { Like } from "../models/like.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { deleteOnCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
+import { Playlist } from "../models/playlist.model.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -128,17 +131,13 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const videoFile = await uploadOnCloudinary(videoFileLocalPath);
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
-    // console.log("videoFile url: ", videoFile.url);
-    // console.log("thumbnail url: ", thumbnail.url);
+   
 
     if (!videoFile) {
-        //TODO: Delete uploaded files if upload fails
         throw new ApiError(500, "Video file not uploaded");
     }
 
     if (!thumbnail) {
-        //TODO: Delete uploaded files if upload fails
-
         throw new ApiError(500, "Thumbnail not uploaded");
     }
 
@@ -148,11 +147,11 @@ const publishAVideo = asyncHandler(async (req, res) => {
         duration: videoFile.duration,
         videoFile: {
             url: videoFile.url,
-            public_id: videoFile.public_id, //TODO: May not need public_id. Remove from model if not
+            public_id: videoFile.public_id, 
         },
         thumbnail: {
             url: thumbnail.url,
-            public_id: thumbnail.public_id, //TODO: May not need public_id. Remove from model if not
+            public_id: thumbnail.public_id, 
         },
         owner: req.user?._id,
         isPublished: false,
@@ -259,8 +258,10 @@ const updateVideo = asyncHandler(async (req, res) => {
     if (!updatedVideo)
         throw new ApiError(500, "Failed to update video. Try again");
 
-    //TODO: delete old thumbnail
-    // await deleteOnCloudinary(thumbnailToDelete);
+
+    if(thumbnailToDelete && thumbnailToDelete !== updatedVideo?.thumbnail?.public_id) {
+        await deleteOnCloudinary(thumbnailToDelete);
+    }
 
     return res
         .status(200)
@@ -288,11 +289,32 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
     if (!videoDeleted) throw new ApiError(500, "Failed to delete the video");
 
-    // TODO: Delete files from cloudinary
+    await deleteOnCloudinary(video.thumbnail.public_id);
+    await deleteOnCloudinary(video.videoFile.public_id, "video");
 
-    // TODO: delete likes
+    //TODO: check if removed from watch history
+    await User.findByIdAndUpdate(req.user?._id, {
+        $pull: {
+            watchHistory: videoId
+        }
+    })
 
-    // TODO: Delete comments
+    //TODO: check if removed from playlist
+    await Playlist.updateMany({
+        video: videoId
+    }, {
+        $pull: {
+            video: videoId
+        }
+    })
+
+    await Like.deleteMany({
+        video: videoId,
+    })
+
+    await Comment.deleteMany({
+        video: videoId,
+    })
 
     return res
         .status(200)

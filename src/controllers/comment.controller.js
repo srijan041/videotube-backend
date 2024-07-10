@@ -21,7 +21,6 @@ const getVideoComments = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Video not found");
     }
 
-    //TODO: Check aggregation pipeline
     const commentAggregate = Comment.aggregate([
         {
             $match: {
@@ -80,6 +79,17 @@ const getVideoComments = asyncHandler(async (req, res) => {
             }
         }
     ])
+
+    const options = {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10)
+    }
+
+    const comments = await Comment.aggregatePaginate(commentAggregate, options)
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, comments, "Comments fetched successfully"))
 })
 
 const addComment = asyncHandler(async (req, res) => {
