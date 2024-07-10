@@ -396,8 +396,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Username is missing")
     }
 
-    //TODO: check aggregation pipeline
-    //Error: MongoServerError: PlanExecutor error during aggregation :: caused by :: The argument to $size must be an array, but was of type: missing
+    
     const channel = await User.aggregate([
         {
             $match: {

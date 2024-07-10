@@ -181,7 +181,6 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid userId");
     }
 
-    //TODO: Add aggregation pipeline to destructure and add subscribers, likes, comments owner, and etc details
     const video = await Video.aggregate([
         {
             $match: {
