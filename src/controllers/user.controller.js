@@ -396,19 +396,21 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Username is missing")
     }
 
+    //TODO: check aggregation pipeline
+    //Error: MongoServerError: PlanExecutor error during aggregation :: caused by :: The argument to $size must be an array, but was of type: missing
     const channel = await User.aggregate([
         {
             $match: {
                 username: username?.toLowerCase()
-            },
+            }
         },
         {
             $lookup: {
-                from: "subscriptions",
-                localField: "_id",
-                foreignField: "channel",
-                as: "subscribers"
-            },
+                from: "subscriptions", // The collection to join with
+                localField: "_id", // Field from the current collection (User) to match
+                foreignField: "channel", // Field from the 'subscriptions' collection to match
+                as: "subscribers" // Alias for the joined data
+            }
         },
         {
             $lookup: {
@@ -420,17 +422,17 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                subscribersCount: {
-                    $size: "$subscibers"
+                subcribersCount: {
+                    $size: "$subscribers"
                 },
                 channelsSubscribedToCount: {
                     $size: "$subscribedTo"
                 },
                 isSubscribed: {
                     $cond: {
-                        if: { $in: [req.user?._id, "$subscibers.subscriber"] },
+                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
                         then: true,
-                        else: false,
+                        else: false
                     }
                 }
             }
@@ -439,15 +441,15 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             $project: {
                 fullName: 1,
                 username: 1,
-                subscribersCount: 1,
-                channelsSubscribedToCount: 1,
-                isSubscribed: 1,
+                email: 1,
                 avatar: 1,
                 coverImage: 1,
+                subcribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1
             }
-        },
-
-    ])
+        }
+    ]);
 
     if (!channel?.length) {
         throw new ApiError(404, `channel does not exists`)

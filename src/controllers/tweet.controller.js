@@ -34,12 +34,14 @@ const createTweet = asyncHandler(async (req, res) => {
 })
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    const { userId } = req.params
+    const { username } = req.params
 
-    if (!userId)
+    if (!username)
         throw new ApiError(400, "username required")
 
-    const user = await User.findOne({ userId })
+    // console.log(username);
+
+    const user = await User.findOne({ username })
 
     if (!user)
         throw new ApiError(404, "User does not exist")
@@ -48,7 +50,7 @@ const getUserTweets = asyncHandler(async (req, res) => {
     const tweets = await Tweet.aggregate([
         {
             $match: {
-                owner: new mongoose.Types.ObjectId(userId),
+                owner: new mongoose.Types.ObjectId(user?._id),
             },
         },
         {
