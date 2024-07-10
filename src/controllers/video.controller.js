@@ -13,6 +13,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid user id");
     }
 
+    //TODO: Check Aggregation Pipeline
+
     const pipeline = [];
 
     if (query) {
