@@ -31,6 +31,8 @@ const getChannelStats = asyncHandler(async (req, res) => {
         }
     ]);
 
+    console.log("totalSubscribers: ", totalSubscribers[0]);
+
     const videos = await Video.aggregate([
         {
             $match: {
@@ -71,7 +73,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
     ])
 
     const channelStats = {
-        totalSubscribers: totalSubscribers[0]?.totalSubscribers || 0,
+        totalSubscribers: totalSubscribers[0]?.subscribersCount || 0,
         totalLikes: videos[0]?.totalLikes || 0,
         totalViews: videos[0]?.totalViews || 0,
         totalVideos: videos[0]?.totalVideos || 0
