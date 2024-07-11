@@ -1,4 +1,4 @@
-import mongoose, { Mongoose } from "mongoose"
+import mongoose, { isValidObjectId, Mongoose } from "mongoose"
 import {Video} from "../models/video.model.js"
 import {Subscription} from "../models/subscription.model.js"
 import {Like} from "../models/like.model.js"
@@ -7,26 +7,34 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
 const getChannelStats = asyncHandler(async (req, res) => {
-    const userId = req.user._id
+    const userId = req.user?._id
+
+    if(!isValidObjectId(userId)) {
+        throw new ApiError(400, "Invalid user id")
+    }
+
+    console.log("userId: ", userId);
 
     const totalSubscribers = await Subscription.aggregate([
         {
             $match: {
-                channel: new Mongoose.Types.ObjectId(userId)
+                channel: new mongoose.Types.ObjectId(userId)
             }
         },
         {
             $group: {
                 _id: null,
-                totalSubscribers: { $sum: 1 }
+                subscribersCount: {
+                    $sum: 1
+                }
             }
         }
-    ])
+    ]);
 
     const videos = await Video.aggregate([
         {
             $match: {
-                owner: new Mongoose.Types.ObjectId(userId)
+                owner: new mongoose.Types.ObjectId(userId)
             }
         },
         {

@@ -60,18 +60,76 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 // controller to return subscriber list of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const { channelId } = req.params
+    console.log(channelId);
 
     if (!isValidObjectId(channelId)) {
         throw new ApiError(400, "Invalid channelId");
     }
 
 
-    //TODO: Add aggregation pipeline to destructure and add subscribers details
-    const subscribers = await Subscription.find({
-        channel: channelId,
-    })
+    const subscribers = await Subscription.aggregate([
+        {
+            $match: {
+                channel: new mongoose.Types.ObjectId(channelId),
+               
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "subscriber",
+                foreignField: "_id",
+                as: "subscriber",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "subscriptions",
+                            localField: "_id",
+                            foreignField: "channel",
+                            as: "subscribedToSubscriber",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            subscribedToSubscriber: {
+                                $cond: {
+                                    if: {
+                                        $in: [
+                                            channelId,
+                                            "$subscribedToSubscriber.subscriber",
+                                        ],
+                                    },
+                                    then: true,
+                                    else: false,
+                                },
+                            },
+                            subscribersCount: {
+                                $size: "$subscribedToSubscriber",
+                            },
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $unwind: "$subscriber",
+        },
+        {
+            $project: {
+                _id: 0,
+                subscriber: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    "avatar.url": 1,
+                    subscribedToSubscriber: 1,
+                    subscribersCount: 1,
+                },
+            },
+        },
+    ]);
 
-    console.log(subscribers);
+    // console.log(subscribers);
 
     if (!subscribers)
         throw new ApiError(500, "Unable to fetch subscribers")
@@ -96,10 +154,63 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         throw new ApiError(400, "invalid subscribeId")
 
 
-    // TODO: Add pipeline to destructure channels found
-    const subscribedTo = await Subscription.find({
-        subscriber: subscriberId
-    })
+    const subscribedTo = await Subscription.aggregate([
+        {
+            $match: {
+                subscriber: new mongoose.Types.ObjectId(subscriberId),
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "subscribedChannel",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "videos",
+                            localField: "_id",
+                            foreignField: "owner",
+                            as: "videos",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            latestVideo: {
+                                $last: "$videos",
+                            },
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $unwind: "$subscribedChannel",
+        },
+        {
+            $project: {
+                _id: 0,
+                subscribedChannel: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    "avatar.url": 1,
+                    latestVideo: {
+                        _id: 1,
+                        "videoFile.url": 1,
+                        "thumbnail.url": 1,
+                        owner: 1,
+                        title: 1,
+                        description: 1,
+                        duration: 1,
+                        createdAt: 1,
+                        views: 1
+                    },
+                },
+            },
+        },
+    ]);
 
     if (!subscribedTo)
         throw new ApiError(500, "SubscribedTo not found")
