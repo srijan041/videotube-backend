@@ -314,7 +314,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Error while uploading on cloudinary")
     }
 
-    const avatarToDelete = user?.avatar?.public_id;
+    const avatarToDelete = req.user?.avatar?.public_id;
 
     const user = await User.findByIdAndUpdate(
         req.user?._id,
@@ -359,7 +359,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Error while uploading on cloudinary")
     }
 
-    const coverImageToDelete = user?.coverImage?.public_id;
+    const coverImageToDelete = req.user?.coverImage?.public_id;
 
     const user = await User.findByIdAndUpdate(
         req.user?._id,
