@@ -190,7 +190,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
                 }
             }
         ])
-        console.log(playlistVideos);
+        // console.log(playlistVideos);
 
         return res
             .status(200)

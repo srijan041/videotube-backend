@@ -5,6 +5,7 @@ import { uploadOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
+import fs from "fs"
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -34,7 +35,6 @@ const registerUser = asyncHandler(async (req, res) => {
     // return res
 
     const { fullName, email, username, password } = req.body
-    // console.log("email: ", email);
 
     if (
         [fullName, email, username, password].some((field) =>
@@ -47,8 +47,11 @@ const registerUser = asyncHandler(async (req, res) => {
         $or: [{ username }, { email }]
     })
 
-    if (existedUSer)
+    if (existedUSer){
+        fs.unlinkSync(req.files?.avatar[0]?.path)
+        fs.unlinkSync(req.files?.coverImage[0]?.path)
         throw new ApiError(409, "User with email or username already exists")
+    }
 
     const avatarLocalPath = req.files?.avatar[0]?.path;
     // const coverImageLocalPath = req.files?.coverImage[0]?.path;
@@ -102,7 +105,7 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
     //req body -> data
     const { email, username, password } = req.body;
-    // console.log(email);
+    
 
     // username or email
     if (!(username || email)) {
@@ -118,8 +121,11 @@ const loginUser = asyncHandler(async (req, res) => {
         $or: [{ email }, { username }],
     })
 
-    if (!user)
-        throw new ApiError(404, "User does not exist")
+    if (!user){
+        // const err = new ApiError(404, "User not found")
+        // console.log("err", err);
+        throw new ApiError(404, "User not found")
+    }
 
     // check password
     const isPasswordValid = await user.isPasswordCorrect(password)
@@ -138,6 +144,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: true,
+        sameSite: "None",
     }
 
     return res
@@ -178,6 +185,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: true,
+        sameSite: "None",
     }
 
     return res
@@ -221,6 +229,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         const options = {
             httpOnly: true,
             secure: true,
+            sameSite: "None",
         }
 
         const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
@@ -396,7 +405,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Username is missing")
     }
 
-    
+
     const channel = await User.aggregate([
         {
             $match: {
@@ -429,7 +438,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                 },
                 isSubscribed: {
                     $cond: {
-                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
                         then: true,
                         else: false
                     }

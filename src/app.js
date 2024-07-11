@@ -8,7 +8,7 @@ const app = express();
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
     credentials: true,
-    exposedHeaders: ["Set-Cookie: SameSite=None; Secure"]
+    // exposedHeaders: ["Set-Cookie: SameSite=None; Secure"]
 }))
 
 app.use(express.json({ limit: "50mb" }));

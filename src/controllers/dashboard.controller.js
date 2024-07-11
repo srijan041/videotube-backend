@@ -13,7 +13,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid user id")
     }
 
-    console.log("userId: ", userId);
+    // console.log("userId: ", userId);
 
     const totalSubscribers = await Subscription.aggregate([
         {
@@ -31,7 +31,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
         }
     ]);
 
-    console.log("totalSubscribers: ", totalSubscribers[0]);
+    // console.log("totalSubscribers: ", totalSubscribers[0]);
 
     const videos = await Video.aggregate([
         {
