@@ -86,7 +86,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     if (!playlist)
         throw new ApiError(500, "Playlist not found")
 
-    const playlistVideos = await Playlist.aggregate([
+    let playlistVideos = await Playlist.aggregate([
         {
             $match: {
                 _id: new mongoose.Types.ObjectId(playlistId)
@@ -95,7 +95,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         {
             $lookup: {
                 from: "videos",
-                localField: "videos",
+                localField: "video",
                 foreignField: "_id",
                 as: "videos",
             }
@@ -153,6 +153,51 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         }
     ])
 
+    if (playlistVideos.length < 1) {
+        playlistVideos = await Playlist.aggregate([
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(playlistId)
+                }
+            },
+            {
+                $addFields: {
+                    totalVideos: 0,
+                    totalViews: 0
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                }
+            },
+            {
+                $project: {
+                    name: 1,
+                    description: 1,
+                    createdAt: 1,
+                    updatedAt: 1,
+                    totalVideos: 1,
+                    totalViews: 1,
+                    owner: {
+                        username: 1,
+                        fullName: 1,
+                        "avatar.url": 1
+                    }
+                }
+            }
+        ])
+        console.log(playlistVideos);
+
+        return res
+            .status(200)
+            .json(new ApiResponse(200, playlistVideos[0], "Empty playlist fetched"))
+    }
+
+
     return res
         .status(200)
         .json(new ApiResponse(200, playlistVideos[0], "Playlist fetched successfully"))
@@ -184,7 +229,7 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 
         await Playlist.findByIdAndUpdate(playlistId, {
             $push: {
-                video: videoId
+                video: new mongoose.Types.ObjectId(videoId)
             }
         })
     }
@@ -270,14 +315,14 @@ const updatePlaylist = asyncHandler(async (req, res) => {
 
 
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
-        playlist?._id, 
+        playlist?._id,
         {
             $set: {
                 name,
                 description,
             },
         },
-        {new: true},
+        { new: true },
     );
 
     return res
